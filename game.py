@@ -2,6 +2,7 @@ from board import Board
 from word_bag import ScrabbleBag
 from player import Player, Move
 
+
 class Game:
     def __init__(self, num_players):
         self.passes = 0
@@ -29,7 +30,7 @@ class Game:
         if self.player_turn == self.no_players - 1:
             self.player_turn = 0
         else:
-            self.player_turn +=1
+            self.player_turn += 1
 
     def game_loop(self):
         move_id = 0

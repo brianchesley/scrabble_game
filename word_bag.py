@@ -44,10 +44,12 @@ class ScrabbleBag(Letter):
 
 class PlayerBag:
     def __init__(self, num_tiles, bag):
-        self.tiles = bag.draw_tiles(7)
+        self.tiles = bag.draw_tiles(num_tiles)
         self.bag = bag
 
     def play_draw_tiles(self, move):
+        print(self.tiles)
         for let in move.tiles_move:
+            print(let)
             self.tiles.remove(let)
         self.tiles = self.tiles + self.bag.draw_tiles(len(move.tiles_move))

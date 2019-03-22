@@ -36,11 +36,10 @@ class BoardTile(Letter):
         self.empty = False
         self.move_id = move_id
 
-    def remove_tiles(self, letter, move_id):
+    def remove_tile(self):
         self.char = None
         self.move_id = None
         self.empty = True
-
 
     def __repr__(self):
         if self.char:
@@ -106,7 +105,7 @@ class Board(ScrabbleBoard):
             score += POINT_MAPPING[slice[i].char] * char_multi
         return score * word_multi
 
-    def place_tiles(self, move, remove=False):
+    def place_tiles(self, move):
         tile_ind = 0
         board_ind = 0
         while tile_ind < len(move.tiles_move):
@@ -130,14 +129,15 @@ class Board(ScrabbleBoard):
             score_down = 0
             for tile in self.board[move.y][move.x:]:
                 if tile.move_id == move.move_id:
-                    score_down += self.calculate_col_score(tile.x, tile.y, True)
+                    # score_down += self.calculate_col_score(tile.x, tile.y, True)
+                    score_down += self.calculate_col_score(move, True)
 
         elif move.direction == 'down':
-            score_down = self.calculate_col_score(move.x, move.y, False)
+            score_down = self.calculate_col_score(move, False)
             score_across = 0
             for y in range(move.y, 15):
                 if self.board[y][move.x].move_id == move.move_id:
-                    score_across += self.calc_row_score(move.x, move.y, True)
+                    score_across += self.calc_row_score(move, True)
         return score_across + score_down
 
         return score
@@ -146,51 +146,65 @@ class Board(ScrabbleBoard):
         if self.board[move.y][move.x].empty:
             return True
         else:
+            print("Start of move is not empty. ")
             return False
 
     def open_tiles(self, move):
         if move.direction == 'across':
-            start = move.x
-            free_tiles = [b_tile.empty for b_tile in self.board[move.y][start:]]
+            free_tiles = [b_tile.empty for b_tile in self.board[move.y][move.x:]]
         elif move.direction == 'down':
-            free_tiles = [row[move.x].empty for row in self.board]
+            free_tiles = [row[move.x].empty for row in self.board][move.y:]
         if len(move.tiles_move) > sum(free_tiles):
             print("There are not enough open tiles for this play ")
+            # TODO This doesn't work either. Check playing across on the right of the board
             return False
         return True
 
     def check_middle(self, move):
-        if move.direction == 'across' and move.y == 7:
-            if 7 in range(move.x, move.x + len(move.tiles_move)):
-                return True
-        if move.direction == 'down' and move.x == 7:
-            if 7 in range(move.y, move.y + len(move.tiles_move)):
-                return True
+        if move.move_id == 0:
+            if move.direction == 'across' and move.y == 7:
+                if 7 in range(move.x, move.x + len(move.tiles_move)):
+                    return True
+            if move.direction == 'down' and move.x == 7:
+                if 7 in range(move.y, move.y + len(move.tiles_move)):
+                    return True
         return False
 
     def anchor_tile(self, move):
+        if self.check_middle(move):
+            return True
         if move.direction == 'across':
             start = move.x - 1
             if start < 0:
                 start = 0
-            end = start + len(move.tiles_move) + 1
+            end = move.x + len(move.tiles_move) + 1
             if end > 14:
                 end = 14
-            domain = [x.empty for x in self.board[move.y][start:end]]
+            domain = [x.empty for x in self.board[move.y]][start:end]
+            if move.y > 0:
+                above = [x.empty for x in self.board[move.y - 1]][move.x:move.x + len(move.tiles_move)]
+            if move.y < 14:
+                below = [x.empty for x in self.board[move.y + 1]][move.x:move.x + len(move.tiles_move)]
+            if all(domain) and all(above) and all(below):
+                print("There is no anchor tile for this play. ")
+                return False
         elif move.direction == 'down':
-            if move.x == 1:
+            if move.y == 1:
                 start = 0
             else:
-                start = move.x - 1
-            end = start + len(move.tiles_move) + 1
+                start = move.y - 1
+            end = move.y + len(move.tiles_move) + 1
             if end > 14:
                 end = 14
             domain = [row[move.x].empty for row in self.board][start:end]
-        if self.check_middle(move):
-            return True
-        if sum(domain) == len(domain):
-            print("There is no anchor tile for this play. ")
-            return False
+            if move.x > 0:
+                left = [row[move.x - 1].empty for row in self.board][move.y:move.y + len(move.tiles_move)]
+            if move.x < 14:
+                right = [row[move.x + 1].empty for row in self.board][move.y:move.y + len(move.tiles_move)]
+            if all(domain) and all(left) and all(right):
+                print("There is no anchor tile for this play. ")
+                return False
+
         return True
 
     def valid_row(self, row):
@@ -203,8 +217,7 @@ class Board(ScrabbleBoard):
                     if not Utils.word_check(curr_word):
                         print("Sorry {0} is not a word".format(curr_word))
                         return False
-                    else:
-                        curr_word = ''
+                curr_word = ''
         return True
 
     def check_words(self):
@@ -217,23 +230,36 @@ class Board(ScrabbleBoard):
                 return False
         return True
 
+    def remove_tiles(self, move):
+        for row in self.board:
+            for tile in row:
+                if tile.move_id == move.move_id:
+                    tile.remove_tile()
+
     def valid_move(self, move):
         if self.open_tiles(move) and self.anchor_tile(move) and self.check_start(move):
             self.place_tiles(move)
             if self.check_words():
                 return True
             else:
-                self.place_tiles(move, remove=True)
+                self.remove_tiles(move)
                 return False
 
     def print(self):
         for ind, row in enumerate(self.board):
-            print(15 - ind, row)
-        # print(" ",[x for x in range(1,16)]) maybe implement these as tiles?
+            print(Utils.double_space(15 - ind), row, Utils.double_space(15 - ind))
+        print('   ',', '.join([Utils.double_space(x) for x in range(1,16)]))
 
 
 class Utils:
     def word_check(word):
-        if word.upper() in open('./word_dict.txt').read():
+        if word.upper() in open('./word_dict.txt').read().splitlines():
             return True
+        return False
+
+    def double_space(num):
+        if num < 10:
+            return str(num) + ' '
+        else:
+            return str(num)
 
