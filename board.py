@@ -1,6 +1,5 @@
 from scrabble_config import POINT_MAPPING
 from word_bag import Letter
-import enchant
 
 
 class ScrabbleBoard:
@@ -60,14 +59,14 @@ class Board(ScrabbleBoard):
                 tile = BoardTile(col_val, col_ind, row_ind)
                 self.board[row_ind].append(tile)
 
-    def calculate_col_score(self, x, y, secondary=False):
-        col = [row[x] for row in self.board]
-        start = self.word_start(col, y)
-        end = self.word_end(col, y)
+    def calculate_col_score(self, move, secondary=False):
+        col = [row[move.x] for row in self.board]
+        start = self.word_start(col, move.y)
+        end = self.word_end(col, move.y)
         if secondary:
             if end - start == 0:
                 return 0
-        score = self.score_word(col, start, end)
+        score = self.score_word(col, start, end, move.move_id)
         return score
 
     def word_start(self, slice, ind):
@@ -82,26 +81,26 @@ class Board(ScrabbleBoard):
             end += 1
         return end - 1
 
-    def calc_row_score(self, x, y, secondary=False):
-        row = self.board[y]
-        start = self.word_start(row, x)
-        end = self.word_end(row, x)
+    def calc_row_score(self, move, secondary=False):
+        row = self.board[move.y]
+        start = self.word_start(row, move.x)
+        end = self.word_end(row, move.x)
         if secondary:
             if end - start == 0:
                 return 0
-        score = self.score_word(row, start, end)
+        score = self.score_word(row, start, end, move.move_id)
         return score
 
-    def score_word(self, slice, start, end):
+    def score_word(self, slice, start, end, move_id):
         score = 0
         word_multi = 1
         for i in range(start, end + 1):
             char_multi = 1
-            if slice[i].type in ['3L', '2L']:
+            if slice[i].type in ['3L', '2L'] and slice[i].move_id == move_id:
                 char_multi = int(slice[i].type[0])
                 slice[i].type == ''
                 print('hello')
-            elif slice[i].type in ['3W', '2W']:
+            elif slice[i].type in ['3W', '2W'] and slice[i].move_id == move_id:
                 word_multi = word_multi * int(slice[i].type[0])
                 slice[i].type == ''
             score += POINT_MAPPING[slice[i].char] * char_multi
@@ -127,7 +126,7 @@ class Board(ScrabbleBoard):
 
     def calculate_score(self, move):
         if move.direction == 'across':
-            score_across = self.calc_row_score(move.x, move.y, False)
+            score_across = self.calc_row_score(move, False)
             score_down = 0
             for tile in self.board[move.y][move.x:]:
                 if tile.move_id == move.move_id:
@@ -171,7 +170,6 @@ class Board(ScrabbleBoard):
 
     def anchor_tile(self, move):
         if move.direction == 'across':
-            move_range = range(move.x, move.x + len(move.tiles_move) + 1)
             start = move.x - 1
             if start < 0:
                 start = 0
@@ -180,7 +178,6 @@ class Board(ScrabbleBoard):
                 end = 14
             domain = [x.empty for x in self.board[move.y][start:end]]
         elif move.direction == 'down':
-            move_range = range(move.y, move.y + len(move.tiles_move)+ 1)
             if move.x == 1:
                 start = 0
             else:
@@ -197,14 +194,13 @@ class Board(ScrabbleBoard):
         return True
 
     def valid_row(self, row):
-        d = enchant.Dict("en_US")
         curr_word = ''
         for tile in row:
             if not tile.empty:
                 curr_word += tile.char
             else:
                 if len(curr_word) > 1:
-                    if not d.check(curr_word):
+                    if not Utils.word_check(curr_word):
                         print("Sorry {0} is not a word".format(curr_word))
                         return False
                     else:
@@ -221,12 +217,23 @@ class Board(ScrabbleBoard):
                 return False
         return True
 
-    def valid_move_pre(self, move):
+    def valid_move(self, move):
         if self.open_tiles(move) and self.anchor_tile(move) and self.check_start(move):
-            return True
-        return False
-
+            self.place_tiles(move)
+            if self.check_words():
+                return True
+            else:
+                self.place_tiles(move, remove=True)
+                return False
 
     def print(self):
-        for row in self.board:
-            print(row)
+        for ind, row in enumerate(self.board):
+            print(15 - ind, row)
+        # print(" ",[x for x in range(1,16)]) maybe implement these as tiles?
+
+
+class Utils:
+    def word_check(word):
+        if word.upper() in open('./word_dict.txt').read():
+            return True
+

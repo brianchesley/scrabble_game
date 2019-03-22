@@ -62,7 +62,6 @@ class Player(PlayerBag):
             self.pass_turn = False
             while not board.valid_move(move):
                 move.get_move()
-            board.place_tiles(move)
             self.play_draw_tiles(move)
 
     def print_tiles(self):
@@ -103,7 +102,7 @@ class Game:
         while not self.game_over:
             self.board.print()
             for num, player in enumerate(self.players):
-                print('Player {0} with {1} points'.format(str(num), player.score))
+                print('Player {0} with {1} points'.format(str(num + 1), player.score))
             print("Here are your tiles: ")
             self.players[self.player_turn].print_tiles()
             move = Move(move_id)
