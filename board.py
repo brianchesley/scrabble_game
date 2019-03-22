@@ -1,30 +1,13 @@
-import random
 from scrabble_config import POINT_MAPPING
+from word_bag import Letter
 import enchant
 
-class Letter():
-    def __init__(self, letter, val):
-        self.value = val
-        self.char = letter
 
-    def __repr__(self):
-        print(self.char, self.value)
-
-class ScrabbleBag(Letter):
-    SCRABBLE_LETTERS = [' ', ' ', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
-                    'A', 'A', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'N', 'N',
-                    'N', 'N', 'N', 'N', 'R', 'R', 'R', 'R', 'R', 'R', 'T', 'T', 'T', 'T', 'T', 'T', 'L', 'L', 'L', 'L', 'S',
-                    'S', 'S', 'S', 'U', 'U', 'U', 'U', 'D', 'D', 'D', 'D', 'G', 'G', 'G', 'B', 'B', 'C', 'C', 'M', 'M', 'P',
-                    'P', 'F', 'F', 'H', 'V', 'V', 'W', 'W', 'Y', 'Y', 'K', 'J', 'X', 'Q', 'Z']
-    scrabble_letters = []
-    for letter in SCRABBLE_LETTERS:
-        letter = Letter(letter, POINT_MAPPING[letter])
-        scrabble_letters.append(letter)
-
-class ScrabbleBoard():
+class ScrabbleBoard:
     SCRABBLE_BOARD = [
         ['3W', '', '', '2L', '', '', '', '3W', '', '', '', '2L', '', '', '3W'],
         ['', '2W', '', '', '', '3L', '', '', '', '3L', '', '', '', '2W', ''],
+        ['', '', '2W', '', '', '', '2L', '', '2L', '', '', '', '2W', '', ''],
         ['2L', '', '', '2W', '', '', '', '2L', '', '', '', '2W', '', '', '2L'],
         ['', '', '', '', '2W', '', '', '', '', '', '2W', '', '', '', ''],
         ['', '3L', '', '', '', '3L', '', '', '', '3L', '', '', '', '3L', ''],
@@ -34,88 +17,183 @@ class ScrabbleBoard():
         ['', '3L', '', '', '', '3L', '', '', '', '3L', '', '', '', '3L', ''],
         ['', '', '', '', '2W', '', '', '', '', '', '2W', '', '', '', ''],
         ['2L', '', '', '2W', '', '', '', '2L', '', '', '', '2W', '', '', '2L'],
+        ['', '', '2W', '', '', '', '2L', '', '2L', '', '', '', '2W', '', ''],
         ['', '2W', '', '', '', '3L', '', '', '', '3L', '', '', '', '2W', ''],
         ['3W', '', '', '2L', '', '', '', '3W', '', '', '', '2L', '', '', '3W']
                       ]
 
 
-class LetterBag(ScrabbleBag):
-    def __init__(self, tiles):
-        self.tiles = tiles
-
-    def draw_tiles(self, num):
-        random.shuffle(self.scrabble_letters)
-        draw = self.scrabble_letters[0:num]
-        self.scrabble_letters = self.scrabble_letters[num:]
-        return draw
-
-
 class BoardTile(Letter):
-    def __init__(self, type):
+    def __init__(self, type, x, y):
+        super(BoardTile, self).__init__(None)
         self.type = type
         self.empty = True
+        self.move_id = None
+        self.x = x
+        self.y = y
 
-    def play_tile(self, letter):
-        self.value = letter.value
+    def play_tile(self, letter, move_id):
         self.char = letter.char
         self.empty = False
+        self.move_id = move_id
+
+    def remove_tiles(self, letter, move_id):
+        self.char = None
+        self.move_id = None
+        self.empty = True
+
+
+    def __repr__(self):
+        if self.char:
+            return self.char + " "
+        elif self.type:
+            return self.type
+        else:
+            return "__"
 
 
 class Board(ScrabbleBoard):
     def __init__(self):
         self.board = [[] for _ in range(15)]
-        for index, row in enumerate(self.board):
-            for col_val in self.SCRABBLE_BOARD[index]:
-                tile = BoardTile(col_val)
-                row.append(tile)
+        for row_ind, row in enumerate(self.SCRABBLE_BOARD):
+            for col_ind, col_val in enumerate(row):
+                tile = BoardTile(col_val, col_ind, row_ind)
+                self.board[row_ind].append(tile)
 
-    def place_tiles(self, move):
+    def calculate_col_score(self, x, y, secondary=False):
+        col = [row[x] for row in self.board]
+        start = self.word_start(col, y)
+        end = self.word_end(col, y)
+        if secondary:
+            if end - start == 0:
+                return 0
+        score = self.score_word(col, start, end)
+        return score
+
+    def word_start(self, slice, ind):
+        start = ind
+        while not slice[start].empty:
+            start -= 1
+        return start + 1
+
+    def word_end(self, slice, ind):
+        end = ind
+        while not slice[end].empty:
+            end += 1
+        return end - 1
+
+    def calc_row_score(self, x, y, secondary=False):
+        row = self.board[y]
+        start = self.word_start(row, x)
+        end = self.word_end(row, x)
+        if secondary:
+            if end - start == 0:
+                return 0
+        score = self.score_word(row, start, end)
+        return score
+
+    def score_word(self, slice, start, end):
+        score = 0
+        word_multi = 1
+        for i in range(start, end + 1):
+            char_multi = 1
+            if slice[i].type in ['3L', '2L']:
+                char_multi = int(slice[i].type[0])
+                slice[i].type == ''
+                print('hello')
+            elif slice[i].type in ['3W', '2W']:
+                word_multi = word_multi * int(slice[i].type[0])
+                slice[i].type == ''
+            score += POINT_MAPPING[slice[i].char] * char_multi
+        return score * word_multi
+
+    def place_tiles(self, move, remove=False):
+        tile_ind = 0
+        board_ind = 0
+        while tile_ind < len(move.tiles_move):
+            if move.direction == 'across':
+                start = move.x
+                if self.board[move.y][board_ind + start].empty:
+                    self.board[move.y][board_ind + start].play_tile(move.tiles_move[tile_ind], move.move_id)
+                    tile_ind += 1
+                board_ind += 1
+            elif move.direction == 'down':
+                start = move.y
+                if self.board[board_ind + start][move.x].empty:
+                    self.board[board_ind + start][move.x].play_tile(move.tiles_move[tile_ind], move.move_id)
+                    tile_ind += 1
+                board_ind += 1
+
+
+    def calculate_score(self, move):
         if move.direction == 'across':
-            start = move.coords[0]
-            tile_ind = 0
-            while tile_ind < len(move.tiles):
-                if move.direction == 'across':
-                    if self.board[move.coords[1]][tile_ind + start].empty:
-                        self.board[move.coords[1]][tile_ind + start] = move.tiles[tile_ind]
-                        tile_ind += 1
-                elif move.direction == 'down':
-                    if self.board 
+            score_across = self.calc_row_score(move.x, move.y, False)
+            score_down = 0
+            for tile in self.board[move.y][move.x:]:
+                if tile.move_id == move.move_id:
+                    score_down += self.calculate_col_score(tile.x, tile.y, True)
 
-            for index in range(len(move.tiles)):
-                y_pos = index + move.coords[1]
-                self.board[y_pos][move.coords[0]] = move.tiles[index]
+        elif move.direction == 'down':
+            score_down = self.calculate_col_score(move.x, move.y, False)
+            score_across = 0
+            for y in range(move.y, 15):
+                if self.board[y][move.x].move_id == move.move_id:
+                    score_across += self.calc_row_score(move.x, move.y, True)
+        return score_across + score_down
+
+        return score
+
+    def check_start(self, move):
+        if self.board[move.y][move.x].empty:
+            return True
+        else:
+            return False
 
     def open_tiles(self, move):
         if move.direction == 'across':
-            start = move.coords[0]
-            end = start + len(move.tiles)
-            free_tiles = [x.char for x in self.board[move.coords[1]][start:]]
+            start = move.x
+            free_tiles = [b_tile.empty for b_tile in self.board[move.y][start:]]
         elif move.direction == 'down':
-            free_tiles = [row[move.coords[0]] for row in self.board]
-        if len(move.tiles) > sum(free_tiles):
-            return 'Not a valid move'
+            free_tiles = [row[move.x].empty for row in self.board]
+        if len(move.tiles_move) > sum(free_tiles):
+            print("There are not enough open tiles for this play ")
+            return False
+        return True
+
+    def check_middle(self, move):
+        if move.direction == 'across' and move.y == 7:
+            if 7 in range(move.x, move.x + len(move.tiles_move)):
+                return True
+        if move.direction == 'down' and move.x == 7:
+            if 7 in range(move.y, move.y + len(move.tiles_move)):
+                return True
+        return False
 
     def anchor_tile(self, move):
         if move.direction == 'across':
-            start = move.coords[0] - 1
+            move_range = range(move.x, move.x + len(move.tiles_move) + 1)
+            start = move.x - 1
             if start < 0:
                 start = 0
-            end = start + len(move.tiles) + 1
+            end = start + len(move.tiles_move) + 1
             if end > 14:
                 end = 14
-            domain = [x.empty for x in self.board[move.coords[1]][start:end]]
+            domain = [x.empty for x in self.board[move.y][start:end]]
         elif move.direction == 'down':
-            if move.coords[0] == 1:
+            move_range = range(move.y, move.y + len(move.tiles_move)+ 1)
+            if move.x == 1:
                 start = 0
             else:
-                start = move.coords[0] - 1
-            end = start + len(move.tiles) + 1
+                start = move.x - 1
+            end = start + len(move.tiles_move) + 1
             if end > 14:
                 end = 14
-            domain = [row[move.coords[0]] for row in self.board]
+            domain = [row[move.x].empty for row in self.board][start:end]
+        if self.check_middle(move):
+            return True
         if sum(domain) == len(domain):
-            if 7 not in move.move_range():
-                return 'Not a valid move'
+            print("There is no anchor tile for this play. ")
+            return False
         return True
 
     def valid_row(self, row):
@@ -125,8 +203,9 @@ class Board(ScrabbleBoard):
             if not tile.empty:
                 curr_word += tile.char
             else:
-                if len(curr_word) > 0:
+                if len(curr_word) > 1:
                     if not d.check(curr_word):
+                        print("Sorry {0} is not a word".format(curr_word))
                         return False
                     else:
                         curr_word = ''
@@ -142,18 +221,12 @@ class Board(ScrabbleBoard):
                 return False
         return True
 
-    def valid_move(self, move):
-        if self.open_tiles(move) and self.anchor_tile(move) and self.check_words():
+    def valid_move_pre(self, move):
+        if self.open_tiles(move) and self.anchor_tile(move) and self.check_start(move):
             return True
         return False
 
 
-
-
-
-
-
-
     def print(self):
         for row in self.board:
-            print(*row)
+            print(row)
