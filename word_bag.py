@@ -53,5 +53,5 @@ class PlayerBag:
             try:
                 self.tiles.remove(let)
             except ValueError:
-                self.tiles.remove('?')
+                self.tiles.remove(Letter('?'))
         self.tiles = self.tiles + self.bag.draw_tiles(len(move.tiles_move))

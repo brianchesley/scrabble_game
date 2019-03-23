@@ -19,7 +19,7 @@ class ScrabbleBoard:
         ['', '', '2W', '', '', '', '2L', '', '2L', '', '', '', '2W', '', ''],
         ['', '2W', '', '', '', '3L', '', '', '', '3L', '', '', '', '2W', ''],
         ['3W', '', '', '2L', '', '', '', '3W', '', '', '', '2L', '', '', '3W']
-                      ]
+    ]
 
 
 class BoardTile(Letter):
@@ -58,36 +58,42 @@ class Board(ScrabbleBoard):
                 tile = BoardTile(col_val, col_ind, row_ind)
                 self.board[row_ind].append(tile)
 
-    def calculate_col_score(self, move, secondary=False):
-        col = [row[move.x] for row in self.board]
-        start = self.word_start(col, move.y)
-        end = self.word_end(col, move.y)
+    def calculate_col_score(self, x, y, move_id, secondary=False):
+        col = [row[x] for row in self.board]
+        start = self.word_start(col, y)
+        end = self.word_end(col, y)
         if secondary:
             if end - start == 0:
                 return 0
-        score = self.score_word(col, start, end, move.move_id)
+        score = self.score_word(col, start, end, move_id)
         return score
 
     def word_start(self, slice, ind):
         start = ind
         while not slice[start].empty:
-            start -= 1
+            if start == 0:
+                return 0
+            else:
+                start -= 1
         return start + 1
 
     def word_end(self, slice, ind):
         end = ind
         while not slice[end].empty:
-            end += 1
+            if end == len(self.board):
+                return end
+            else:
+                end += 1
         return end - 1
 
-    def calc_row_score(self, move, secondary=False):
-        row = self.board[move.y]
-        start = self.word_start(row, move.x)
-        end = self.word_end(row, move.x)
+    def calc_row_score(self, x, y, move_id, secondary=False):
+        row = self.board[y]
+        start = self.word_start(row, x)
+        end = self.word_end(row, x)
         if secondary:
             if end - start == 0:
                 return 0
-        score = self.score_word(row, start, end, move.move_id)
+        score = self.score_word(row, start, end, move_id)
         return score
 
     def score_word(self, slice, start, end, move_id):
@@ -98,7 +104,6 @@ class Board(ScrabbleBoard):
             if slice[i].type in ['3L', '2L'] and slice[i].move_id == move_id:
                 char_multi = int(slice[i].type[0])
                 slice[i].type == ''
-                print('hello')
             elif slice[i].type in ['3W', '2W'] and slice[i].move_id == move_id:
                 word_multi = word_multi * int(slice[i].type[0])
                 slice[i].type == ''
@@ -122,22 +127,20 @@ class Board(ScrabbleBoard):
                     tile_ind += 1
                 board_ind += 1
 
-
     def calculate_score(self, move):
         if move.direction == 'across':
-            score_across = self.calc_row_score(move, False)
+            score_across = self.calc_row_score(move.x, move.y, move.move_id, False)
             score_down = 0
             for tile in self.board[move.y][move.x:]:
                 if tile.move_id == move.move_id:
                     # score_down += self.calculate_col_score(tile.x, tile.y, True)
-                    score_down += self.calculate_col_score(move, True)
-
+                    score_down += self.calculate_col_score(tile.x, tile.y, move.move_id, True)
         elif move.direction == 'down':
-            score_down = self.calculate_col_score(move, False)
+            score_down = self.calculate_col_score(move.x, move.y, move.move_id, False)
             score_across = 0
             for y in range(move.y, 15):
                 if self.board[y][move.x].move_id == move.move_id:
-                    score_across += self.calc_row_score(move, True)
+                    score_across += self.calc_row_score(move.x, y, move.move_id, True)
         return score_across + score_down
 
         return score
@@ -262,4 +265,3 @@ class Utils:
             return str(num) + ' '
         else:
             return str(num)
-

@@ -49,10 +49,10 @@ class Move:
 
     def validate_tiles(self):
         player_letters = [x.char for x in self.player_bag]
-        if self.letters in player_letters:
+        diff = [letter in player_letters for letter in list(self.letters)]
+        if all(diff):
             return True
-        diff = set(player_letters) - set(self.letters)
-        if player_letters.count("?") == diff:
+        if player_letters.count("?") == diff.count(False):
             return True
         return False
 
