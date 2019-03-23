@@ -50,6 +50,8 @@ class PlayerBag:
     def play_draw_tiles(self, move):
         print(self.tiles)
         for let in move.tiles_move:
-            print(let)
-            self.tiles.remove(let)
+            try:
+                self.tiles.remove(let)
+            except ValueError:
+                self.tiles.remove('?')
         self.tiles = self.tiles + self.bag.draw_tiles(len(move.tiles_move))
