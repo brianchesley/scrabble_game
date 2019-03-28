@@ -40,7 +40,7 @@ class Game:
                 print('Player {0} with {1} points'.format(str(num + 1), player.score))
             print("Here are your tiles: ")
             self.players[self.player_turn].print_tiles()
-            move = Move(move_id)
+            move = Move(move_id, self.players[self.player_turn].tiles)
             move_id += 1
             self.players[self.player_turn].make_move(self.board, move)
             if self.players[self.player_turn].pass_turn:

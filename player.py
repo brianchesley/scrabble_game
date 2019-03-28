@@ -3,7 +3,7 @@ from word_bag import Letter, PlayerBag, ScrabbleBag
 
 
 class Move:
-    def __init__(self, move_id):
+    def __init__(self, move_id, player_bag):
         self.tiles_move = []
         self.coords = None
         self.direction = None
@@ -12,6 +12,7 @@ class Move:
         self.letters = None
         self.y = None
         self.move_id = move_id
+        self.player_bag = player_bag
 
     def invert_y(self, y):
         return 14 - y
@@ -42,7 +43,21 @@ class Move:
         if self.direction not in ['down','across']:
             print("Please enter a valid direction. ")
             return False
+        if not self.validate_tiles():
+            return False
         return True
+
+    def validate_tiles(self):
+        player_letters = [x.char for x in self.player_bag]
+        diff = [letter in player_letters for letter in list(self.letters)]
+        if all(diff):
+            return True
+        if player_letters.count("?") == diff.count(False):
+            return True
+        return False
+
+
+
 
     def create_tiles(self):
         for letter in self.letters:

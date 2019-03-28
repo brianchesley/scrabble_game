@@ -16,7 +16,7 @@ class Letter:
 
 
 class ScrabbleBag(Letter):
-    SCRABBLE_LETTERS = [' ', ' ', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'A', 'A', 'A', 'A', 'A',
+    SCRABBLE_LETTERS = ['?', '?', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'A', 'A', 'A', 'A', 'A',
                         'A', 'A', 'A', 'A', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'O', 'O', 'O', 'O', 'O', 'O',
                         'N', 'N', 'N', 'N', 'R', 'R', 'R', 'R', 'R', 'R', 'T', 'T', 'T', 'T', 'T', 'T', 'L', 'L', 'L',
                         'L', 'S', 'S', 'S', 'S', 'U', 'U', 'U', 'U', 'D', 'D', 'D', 'D', 'G', 'G', 'G', 'B', 'B', 'C',
@@ -50,6 +50,8 @@ class PlayerBag:
     def play_draw_tiles(self, move):
         print(self.tiles)
         for let in move.tiles_move:
-            print(let)
-            self.tiles.remove(let)
+            try:
+                self.tiles.remove(let)
+            except ValueError:
+                self.tiles.remove(Letter('?'))
         self.tiles = self.tiles + self.bag.draw_tiles(len(move.tiles_move))
