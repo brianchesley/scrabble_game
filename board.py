@@ -80,7 +80,7 @@ class Board(ScrabbleBoard):
     def word_end(self, slice, ind):
         end = ind
         while not slice[end].empty:
-            if end == len(self.board):
+            if end == len(self.board) - 1:
                 return end
             else:
                 end += 1
@@ -142,8 +142,6 @@ class Board(ScrabbleBoard):
                 if self.board[y][move.x].move_id == move.move_id:
                     score_across += self.calc_row_score(move.x, y, move.move_id, True)
         return score_across + score_down
-
-        return score
 
     def check_start(self, move):
         if self.board[move.y][move.x].empty:
@@ -248,13 +246,21 @@ class Board(ScrabbleBoard):
                 self.remove_tiles(move)
                 return False
 
-    def print(self):
+    def to_str(self):
+        board_str = ''
         for ind, row in enumerate(self.board):
-            print(Utils.double_space(15 - ind), row, Utils.double_space(15 - ind))
-        print('   ',', '.join([Utils.double_space(x) for x in range(1,16)]))
+            board_str += '\n'
+            board_str += Utils.double_space(15 - ind) + ' ' +  \
+                " ".join(map(str, row)) + ' ' + Utils.double_space(15 - ind)
+        board_str += '\n   '
+        board_str += ' '.join([Utils.double_space(x) for x in range(1, 16)])
+        return board_str
 
 
 class Utils:
+    def __init__(self):
+        pass
+
     def word_check(word):
         if word.upper() in open('./word_dict.txt').read().splitlines():
             return True

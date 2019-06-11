@@ -1,5 +1,6 @@
-from board import Board
-from word_bag import Letter, PlayerBag, ScrabbleBag
+from word_bag import Letter, PlayerBag
+import json
+import base64
 
 
 class Move:
@@ -20,30 +21,37 @@ class Move:
     def get_inputs(self):
         self.tiles_move = []
         self.letters = input("What letters do you want to play? ").upper()
-        self.x = input("Where would you like to play in the X direction (1-15)? ")
-        self.y = input("Where would you like to play in the Y direction (1-15) ")
-        self.direction = input("What direction do you want to play in? (across or down) ")
+        self.x = input(
+            "Where would you like to play in the X direction (1-15)? ")
+        self.y = input(
+            "Where would you like to play in the Y direction (1-15) ")
+        self.direction = input(
+            "What direction do you want to play in? (across or down) ")
 
-    def get_move(self):
-        self.get_inputs()
-        while not self.validate_inputs():
-            self.get_inputs()
-        self.create_tiles()
+    def build_move(self, struct):
+        # This builds a move from a dictionary from a network
+        self.x = struct['x']
+        self.y = struct['y']
+        self.letters = struct['letters']
+        self.direction = struct['direction']
 
     def validate_inputs(self):
+        if not self.letters and (self.x or self.y):
+            return True
         try:
             self.x = int(self.x) - 1
             self.y = self.invert_y(int(self.y) - 1)
-        except ValueError:
-            print("Please enter a valid number. ")
+        except (ValueError, TypeError):
+            message = "Please enter a valid number. "
             return False
         if self.x and self.y not in range(15):
-            print("Please enter a valid place to play. ")
+            message = "Please enter a valid place to play. "
             return False
-        if self.direction not in ['down','across']:
-            print("Please enter a valid direction. ")
+        if self.direction not in ['down', 'across']:
+            message = "Please enter a valid direction. "
             return False
         if not self.validate_tiles():
+            message = "You don't have these tiles"
             return False
         return True
 
@@ -55,9 +63,6 @@ class Move:
         if player_letters.count("?") == diff.count(False):
             return True
         return False
-
-
-
 
     def create_tiles(self):
         for letter in self.letters:
@@ -72,25 +77,39 @@ class Move:
 
 
 class Player(PlayerBag):
-    def __init__(self, word_bag):
+    def __init__(self, word_bag, name, socket=None):
         super(Player, self).__init__(7, word_bag)
         self.score = 0
         self.pass_turn = False
+        self.socket = socket
+        self.name = name
 
     def make_move(self, board, move):
-        move.get_move()
         if move.pass_move():
             self.pass_turn = True
         else:
             self.pass_turn = False
             while not board.valid_move(move):
-                print("Sorry, not a valid move. Try again. ")
                 move.get_move()
             self.play_draw_tiles(move)
 
+    def get_move(self, move, game_data):
+        while not move.validate_inputs():
+            if self.socket:
+                self.socket.send(base64.b64encode(json.dumps(
+                    game_data).encode('utf-8')))
+                # TODO add message here saying their move wasn't valid
+                resp = json.loads(base64.b64decode(self.socket.recv(10000)))
+                move.build_move(resp)
+            else:
+                move.get_inputs()
+        move.create_tiles()
+
     def print_tiles(self):
-        print(self.tiles)
+        return " ".join(map(str, self.tiles))
 
-
-
-
+    def send_msg(self, message):
+        if self.socket:
+            self.socket.send(base64.b64encode(json.dumps(message)))
+        else:
+            print(message)
