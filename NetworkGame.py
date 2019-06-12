@@ -60,7 +60,8 @@ class NetworkGame():
             self.game_data['tiles'] = tile_str
             move = Move(move_id, self.players[self.player_turn].tiles)
             self.players[self.player_turn].get_move(move, self.game_data)
-            self.players[self.player_turn].make_move(self.board, move)
+            self.players[self.player_turn].make_move(move, self.board,
+                                                     self.game_data)
             move_id += 1
             if self.players[self.player_turn].pass_turn:
                 self.skips += 1

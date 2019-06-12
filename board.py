@@ -183,14 +183,21 @@ class Board(ScrabbleBoard):
                 end = 14
             domain = [x.empty for x in self.board[move.y]][start:end]
             if move.y > 0:
-                above = [x.empty for x in self.board[move.y - 1]][move.x:move.x + len(move.tiles_move)]
+                above = [x.empty for x in self.board[
+                    move.y - 1]][move.x:move.x + len(move.tiles_move)]
+            else:
+                above = [True for x in self.board[
+                    move.y - 1]][move.x:move.x + len(move.tiles_move)]
             if move.y < 14:
-                below = [x.empty for x in self.board[move.y + 1]][move.x:move.x + len(move.tiles_move)]
+                below = [x.empty for x in self.board[
+                    move.y + 1]][move.x:move.x + len(move.tiles_move)]
+            else:
+                below = [True for x in self.board[move.y + 1]][move.x:move.x + len(move.tiles_move)]
             if all(domain) and all(above) and all(below):
                 print("There is no anchor tile for this play. ")
                 return False
         elif move.direction == 'down':
-            if move.y == 1:
+            if move.y == 0:
                 start = 0
             else:
                 start = move.y - 1
@@ -200,8 +207,12 @@ class Board(ScrabbleBoard):
             domain = [row[move.x].empty for row in self.board][start:end]
             if move.x > 0:
                 left = [row[move.x - 1].empty for row in self.board][move.y:move.y + len(move.tiles_move)]
+            else:
+                left = [True for row in self.board][move.y:move.y + len(move.tiles_move)]
             if move.x < 14:
                 right = [row[move.x + 1].empty for row in self.board][move.y:move.y + len(move.tiles_move)]
+            else:
+                right = [True for row in self.board][move.y:move.y + len(move.tiles_move)]
             if all(domain) and all(left) and all(right):
                 print("There is no anchor tile for this play. ")
                 return False
@@ -238,7 +249,8 @@ class Board(ScrabbleBoard):
                     tile.remove_tile()
 
     def valid_move(self, move):
-        if self.open_tiles(move) and self.anchor_tile(move) and self.check_start(move):
+        if self.open_tiles(move) and self.anchor_tile(move) and \
+                self.check_start(move):
             self.place_tiles(move)
             if self.check_words():
                 return True

@@ -30,21 +30,19 @@ class Move:
 
     def build_move(self, struct):
         # This builds a move from a dictionary from a network
-        self.x = struct['x']
-        self.y = struct['y']
+        try:
+            self.x = int(struct['x']) - 1
+            self.y = self.invert_y(int(struct['y']) - 1)
+        except (ValueError, TypeError):
+            self.x = None
+            self.y = None
         self.letters = struct['letters']
         self.direction = struct['direction']
 
     def validate_inputs(self):
         if not self.letters and (self.x or self.y):
             return True
-        try:
-            self.x = int(self.x) - 1
-            self.y = self.invert_y(int(self.y) - 1)
-        except (ValueError, TypeError):
-            message = "Please enter a valid number. "
-            return False
-        if self.x and self.y not in range(15):
+        if self.x not in range(15) and self.y not in range(15):
             message = "Please enter a valid place to play. "
             return False
         if self.direction not in ['down', 'across']:
@@ -84,15 +82,6 @@ class Player(PlayerBag):
         self.socket = socket
         self.name = name
 
-    def make_move(self, board, move):
-        if move.pass_move():
-            self.pass_turn = True
-        else:
-            self.pass_turn = False
-            while not board.valid_move(move):
-                move.get_move()
-            self.play_draw_tiles(move)
-
     def get_move(self, move, game_data):
         while not move.validate_inputs():
             if self.socket:
@@ -104,6 +93,17 @@ class Player(PlayerBag):
             else:
                 move.get_inputs()
         move.create_tiles()
+
+    def make_move(self, move, board, game_data):
+        if move.pass_move():
+            self.pass_turn = True
+        else:
+            while not board.valid_move(move):
+                move_id = move.move_id
+                move = Move(move_id, self.tiles)
+                self.get_move(move, game_data)
+            self.pass_turn = False
+            self.play_draw_tiles(move)
 
     def print_tiles(self):
         return " ".join(map(str, self.tiles))
