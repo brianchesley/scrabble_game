@@ -1,6 +1,7 @@
 import socket
 import json
 import base64
+import sys
 
 
 class Client():
@@ -10,13 +11,14 @@ class Client():
         self.sock.connect((host, port))
         self.alive = True
         serv = self.sock.recv(1000)
-        thing = input(serv).encode('ascii')
-        self.sock.send(thing)
+        name = input(serv).encode('utf-8')
+        self.sock.send(name)
         self.start_game()
 
     def start_game(self):
         while self.alive:
             msg_recv = self.sock.recv(100000)
+            print('msg', msg_recv)
             game_res = json.loads(base64.b64decode(msg_recv))
             if 'game_over' in game_res:
                 self.alive = False
@@ -51,4 +53,4 @@ class Client():
         return True
 
 
-Client('127.0.0.1', 12355)
+Client(sys.argv[1], 12355)

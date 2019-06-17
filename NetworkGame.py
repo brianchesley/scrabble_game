@@ -4,7 +4,7 @@ from word_bag import ScrabbleBag
 
 
 class NetworkGame():
-    def __init__(self, names, sockets, num_players=2):
+    def __init__(self, sockets, num_players=2):
         # TODO refactor game base class for use in network and use locally
         self.passes = 0
         self.no_players = num_players
@@ -12,8 +12,7 @@ class NetworkGame():
         self.bag = ScrabbleBag()
         self.game_over = False
         self.player_turn = 0
-        self.players = [Player(self.bag, name, socket) for name, socket in
-                        zip(names, sockets)]
+        self.players = [Player(self.bag, socket) for socket in sockets]
         self.skips = 0
         self.move_id = 0
         self.game_data = {}

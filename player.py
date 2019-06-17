@@ -75,20 +75,21 @@ class Move:
 
 
 class Player(PlayerBag):
-    def __init__(self, word_bag, name, socket=None):
+    def __init__(self, word_bag, socket=None):
         super(Player, self).__init__(7, word_bag)
         self.score = 0
         self.pass_turn = False
         self.socket = socket
-        self.name = name
+        if socket:
+            self.name, self.reader, self.writer = socket
 
     def get_move(self, move, game_data):
         while not move.validate_inputs():
             if self.socket:
-                self.socket.send(base64.b64encode(json.dumps(
+                self.writer.write(base64.b64encode(json.dumps(
                     game_data).encode('utf-8')))
                 # TODO add message here saying their move wasn't valid
-                resp = json.loads(base64.b64decode(self.socket.recv(10000)))
+                resp = json.loads(base64.b64decode(self.reader.read(10000)))
                 move.build_move(resp)
             else:
                 move.get_inputs()
@@ -110,6 +111,6 @@ class Player(PlayerBag):
 
     def send_msg(self, message):
         if self.socket:
-            self.socket.send(base64.b64encode(json.dumps(message)))
+            self.writer.write(base64.b64encode(json.dumps(message)))
         else:
             print(message)
